@@ -5,5 +5,5 @@ pushd ./1-lab-service-setup
   ./2-mysqldb-deploy.sh 
 popd
 pushd ./2-user-lab-setup
-./0-user-lab-setup.sh 
+  ./0-user-lab-setup.sh 
 popd

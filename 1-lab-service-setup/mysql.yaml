@@ -39,7 +39,7 @@ spec:
       serviceAccountName: mysql-db
       containers:
       - name: mysql-db
-        image: mysql:5.7.32
+        image: quay.io/myeung/mysql:5.7.32
         imagePullPolicy: IfNotPresent
         ports:
           - containerPort: 3306
