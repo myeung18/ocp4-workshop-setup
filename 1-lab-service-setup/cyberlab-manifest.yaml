@@ -72,7 +72,7 @@ metadata:
   namespace: cyberlab
 subjects:
 - kind: User
-  name: jodyhunt
+  name: opentlc-mgr
 roleRef:
   kind: ClusterRole
   name: admin
