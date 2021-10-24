@@ -1,0 +1,28 @@
+---
+- !policy
+  id: user{{ APP_NUM }}
+  body: 
+  - !group apps
+
+  - !host
+    id: os-climate-app-team{{ APP_NUM }}				# identity name
+    annotations:
+      authn-k8s/namespace: user{{ APP_NUM }}					# namespace it runs in
+      authn-k8s/service-account: os-climate-app-team{{ APP_NUM }} 	# service account it runs as
+      authn-k8s/authentication-container-name: secretless-broker	# name of authenticator container
+
+  # Grant authn-k8s & safe access roles to app identity
+  - !grant
+    roles:
+    - !group apps
+    members:
+    - !host os-climate-app-team{{ APP_NUM }}
+
+# Grant consumer roles for authn-k8s & safe to apps role
+# Apps role is granted to identities created in labs
+- !grant
+  roles:
+  - !group conjur/authn-k8s/os-climate-poc/consumers	# group w/ authentication permissions in cluster
+  - !group LabVault/Labs/LabSafe{{ APP_NUM }}/delegation/consumers 			# group role w/ access to secrets in safe
+  members:
+  - !group user{{ APP_NUM }}/apps
