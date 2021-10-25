@@ -49,6 +49,8 @@ function conjur_append_policy {
 	policy_branch=$1
 	policy_name=$2
 	header=$(conjur_authenticate)
+	REQ="curl -H $header -X POST -d $(< $policy_name) -s -k $CONJUR_APPLIANCE_URL/policies/$CONJUR_ACCOUNT/policy/$policy_branch"
+	#echo "request: " "$REQ"
 	response=$(curl -H "$header" -X POST -d "$(< $policy_name)" -s -k $CONJUR_APPLIANCE_URL/policies/$CONJUR_ACCOUNT/policy/$policy_branch)
 	echo "$response"
 }

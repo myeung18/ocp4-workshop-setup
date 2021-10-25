@@ -1,0 +1,104 @@
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: os-climate-app-team{{ APP_NUM }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: os-climate-app-team{{ APP_NUM }}
+  labels:
+    app: os-climate-app-team{{ APP_NUM }}
+spec:
+  ports:
+  - port: 3800
+    name: http
+  selector:
+    app: os-climate-app-team{{ APP_NUM }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: os-climate-app-team{{ APP_NUM }}
+  name: os-climate-app-team{{ APP_NUM }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: os-climate-app-team{{ APP_NUM }}
+  template:
+    metadata:
+      labels:
+        app: os-climate-app-team{{ APP_NUM }}
+    spec:
+      serviceAccountName: os-climate-app-team{{ APP_NUM }}
+
+      containers:
+      - image: quay.io/myeung/simple-python
+        imagePullPolicy: IfNotPresent
+        name: os-climate-app-team{{ APP_NUM }}
+        ports:
+          - containerPort: 3800
+      - image: quay.io/myeung/secretless-broker:local
+        imagePullPolicy: IfNotPresent
+        name: secretless-broker
+        # args refer to values mounted from config map, populated from Conjur
+        args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
+        env:
+          - name: CONJUR_AUTHN_LOGIN
+            value: host/{{ APP_NAMESPACE_NAME }}/os-climate-app-team{{ APP_NUM }}
+
+          # values from pod metadata
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+
+        # values from DAP config map
+          - name: CONJUR_VERSION
+            valueFrom:
+              configMapKeyRef:
+                name: dap-config
+                key: CONJUR_VERSION
+          - name: CONJUR_ACCOUNT
+            valueFrom:
+              configMapKeyRef:
+                name: dap-config
+                key: CONJUR_ACCOUNT
+          - name: CONJUR_APPLIANCE_URL
+            valueFrom:
+              configMapKeyRef:
+                name: dap-config
+                key: CONJUR_APPLIANCE_URL
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: dap-config
+                key: CONJUR_FOLLOWER_CERTIFICATE
+          - name: CONJUR_AUTHN_URL
+            valueFrom:
+              configMapKeyRef:
+                name: dap-config
+                key: CONJUR_AUTHN_URL
+
+        volumeMounts:
+        - name: config
+          mountPath: "/etc/secretless"
+          readOnly: true
+
+      volumes:
+      - name: config
+        configMap:
+          name: secretless-config

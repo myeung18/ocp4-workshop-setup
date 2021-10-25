@@ -26,13 +26,15 @@ main() {
   initialize_verify_k8s_api_secrets
   create_configmaps
   init_secrets
+  install_conjur_client
 }
 
 ########################
 clean_master() {
   oc delete -f dap-cm-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
   oc delete -f master-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
-  rm -f dap-cm-manifest.yaml master-deployment-manifest.yaml master-authenticator-policy.yaml master-secrets-policy.yaml
+  oc delete -f conjur-cli-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
+  rm -f dap-cm-manifest.yaml master-deployment-manifest.yaml master-authenticator-policy.yaml master-secrets-policy.yaml conjur-cli-deployment-manifest.yaml
 }
 
 ########################
@@ -72,6 +74,24 @@ start_master() {
 		$CONJUR_ACCOUNT
 
   wait_till_node_is_responsive
+}
+
+########################
+install_conjur_client() {
+  echo "Install conjur cli ... "
+  cat ./templates/conjur-cli.template.yaml \
+  | sed -e "s#{{ CYBERARK_NAMESPACE_NAME }}#$CYBERARK_NAMESPACE_NAME#g" 	\
+  | sed -e "s#{{ CONJUR_ACCOUNT }}#$CONJUR_ACCOUNT#g" 		\
+  > ./conjur-cli-deployment-manifest.yaml
+  oc apply -f ./conjur-cli-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
+
+  CLI_POD_NAME=""				
+  while [[ "$CLI_POD_NAME" == "" ]]; do	# wait till pod is running
+    echo -n "."
+    sleep 3
+    CLI_POD_NAME=$(oc get pods -n $CYBERARK_NAMESPACE_NAME | grep conjur-cli | grep Running | awk '{print $1}')
+  done
+  echo
 }
 
 ########################
@@ -185,8 +205,11 @@ init_secrets() {
     > master-secrets-policy.yaml
   ../load_policy.sh root ./master-secrets-policy.yaml delete
 
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/username $MYSQL_USERNAME
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/password $MYSQL_PASSWORD
+  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/access_key $AWS_ACCESS_KEY
+  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/secret_key $AWS_SECRET_KEY
+
+  ../get_set.sh set $VAULT_NAME/$LOB_NAME/LabSafe2/$ACCOUNT_NAME/access_key $AWS_ACCESS_KEY_2
+  ../get_set.sh set $VAULT_NAME/$LOB_NAME/LabSafe2/$ACCOUNT_NAME/secret_key $AWS_SECRET_KEY_2
 }
 
 ############################
