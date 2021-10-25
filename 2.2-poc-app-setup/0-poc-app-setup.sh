@@ -49,12 +49,15 @@ deploy_poc_app() {
   for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace and user 
   do
     uname=$(echo user${unum})
+
+    oc adm policy add-scc-to-user anyuid -z $(echo os-climate-app-team${unum}) -n $uname
     cat ./templates/app-poc-manifest.template.yaml				\
     | sed -e "s#{{ APP_NAMESPACE_NAME }}#$uname#g" 				\
     | sed -e "s#{{ APP_NAMESPACE_ADMIN }}#$uname#g"				\
     | sed -e "s#{{ APP_NUM }}#$unum#g"				\
     > ./$uname-app-poc-manifest.yaml
     oc apply -f ./$uname-app-poc-manifest.yaml -n $uname
+
   done
 }
 
