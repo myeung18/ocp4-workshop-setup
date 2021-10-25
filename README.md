@@ -1,3 +1,13 @@
+# OS-Climate Secret Management with CyberArk Secretless Broker and Conjur 
+
+
+## Installation
+
+Prepare one or two AWS users, and add the credentials to the `dap-service.config`
+```
+
+```
+
 
 ```shell
 oc exec -it os-climate-app-team1-848f9b5484-7k6b2 -n user1 -- bash -c "python secretless.py"
@@ -9,3 +19,6 @@ Use 'oc describe pod/os-climate-app-team1-848f9b5484-7k6b2 -n user1' to see all 
 {'Name': 'bucket', 'CreationDate': datetime.datetime(2017, 2, 19, 16, 47, 24, tzinfo=tzlocal())}
 {'Name': 'test-os', 'CreationDate': datetime.datetime(2021, 10, 16, 18, 55, 19, tzinfo=tzlocal())}
 ```
+
+
+https://github.com/cyberark/conjur/blob/master/app/domain/authentication/authn_k8s/TROUBLESHOOTING.md
