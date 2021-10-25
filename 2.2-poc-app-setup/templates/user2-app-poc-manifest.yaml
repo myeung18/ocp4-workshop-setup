@@ -1,57 +1,42 @@
 
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: os-climate-app-team{{ APP_NUM }}
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: os-climate-app-team{{ APP_NUM }}
+  name: os-climate-app-team2-simple
   labels:
-    app: os-climate-app-team{{ APP_NUM }}
+    app: os-climate-app-team2-simple
 spec:
   ports:
-  - port: 8888
+  - port: 3800
     name: http
   selector:
-    app: os-climate-app-team{{ APP_NUM }}
----
-kind: Route
-apiVersion: route.openshift.io/v1
-metadata:
-  name: os-climate-app-team{{ APP_NUM }}
-  labels:
-    name: os-climate-app-team{{ APP_NUM }}
-spec:
-  to:
-    kind: Service
-    name: os-climate-app-team{{ APP_NUM }}
+    app: os-climate-app-team2-simple
+
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: os-climate-app-team{{ APP_NUM }}
-  name: os-climate-app-team{{ APP_NUM }}
+    app: os-climate-app-team2-simple
+  name: os-climate-app-team2-simple
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: os-climate-app-team{{ APP_NUM }}
+      app: os-climate-app-team2-simple
   template:
     metadata:
       labels:
-        app: os-climate-app-team{{ APP_NUM }}
+        app: os-climate-app-team2-simple
     spec:
-      serviceAccountName: os-climate-app-team{{ APP_NUM }}
+      serviceAccountName: os-climate-app-team2
       containers:
-      - image: quay.io/myeung/os-climate-poc-app:0.1
+      - image: quay.io/myeung/simple-python:latest
         imagePullPolicy: IfNotPresent
-        name: os-climate-app-team{{ APP_NUM }}
+        name: os-climate-app-team2
         ports:
-          - containerPort: 8888 
+          - containerPort: 3800
       - image: quay.io/myeung/secretless-broker:local
         imagePullPolicy: IfNotPresent
         name: secretless-broker
@@ -59,7 +44,7 @@ spec:
         args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: host/{{ APP_NAMESPACE_NAME }}/os-climate-app-team{{ APP_NUM }}
+            value: host/user2/os-climate-app-team2
 
           # values from pod metadata
           - name: MY_POD_NAME
