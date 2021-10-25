@@ -13,7 +13,7 @@
 #e.g.
 export KUBECONFIG=<~/.kube/config>   
 #Add the OpenShift cluster domain
-export CLUSTER_DOMAIN=cluster-436d.436d.sandbox1159.opentlc.com
+export CLUSTER_DOMAIN=<e.g.:cluster-436d.436d.sandbox1159.opentlc.com>
 
 #Prepare one or two AWS users, and add the credentials to the `dap-service.config` 
 export AWS_ACCESS_KEY=<acess_key1>
@@ -48,25 +48,25 @@ os-climate-app-team1
 secretless-broker
 ```
 ### Launch the Conjur UI with its route from the project `cyberlab`
-username: `admin`; password is the one you input while the `./SETUP-POC.sh` was running. You can also retrieve with `keyring get conjur adminpwd` after the setup is done
+username: `admin`; password is the one you input while the `./SETUP-POC.sh` was running. You can also retrieve it with `keyring get conjur adminpwd` after the setup is done
 
 <img src="docs/conjur_login.png">
 
-### Conjur UI, we can view all the policies which define the authn and authz of this POC
+### Conjur UI, we can view all the policies which define the authn and authz for this POC
 
 <img src="docs/conjur_ui.png">
 
 ### Launch Jupyter Notebook application with the routes in the project `user1` or `user2`
 
-To login, you can find the jupyter token in this Notebook application's container log in the corresponding pod in those application projects. e.g. container: `os-climate-app-team1`.  Put the token in the `password or token` box and click `Log in`
+To login, you can find the jupyter token in this Notebook application's container log in the corresponding pod in the project. e.g. container: `os-climate-app-team1`.  Put the token in the `password or token` box and click `Log in`
 <img src="docs/jupyter-app-start.png">
 
 select `Secretless Demo with Conjur.ipynb` and run the Notebook
 <img src="docs/jupyter-nb-files.png">
 
-You can see the Notebook is requesting AWS login from the secretless broker and eventually it retrieves a list of buckets from the AWS user account which this Notebook is associted with
+You can see the Notebook requests AWS login from the secretless broker and eventually it retrieves a list of buckets from the AWS account which is associted with this Notebook.
   
-The ouput depends on the setting of the AWS user
+The ouput depends on the setting of the AWS account
 <img src="docs/jupyter-secretless.png">
 
 ## Clean up

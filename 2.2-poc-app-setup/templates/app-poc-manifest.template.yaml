@@ -48,7 +48,7 @@ spec:
       serviceAccountName: os-climate-app-team{{ APP_NUM }}
       containers:
       - image: quay.io/myeung/os-climate-poc-app:0.1
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         name: os-climate-app-team{{ APP_NUM }}
         ports:
           - containerPort: 8888 
