@@ -3,38 +3,38 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: os-climate-app-team2-simple
+  name: os-climate-app-team3-simple
   labels:
-    app: os-climate-app-team2-simple
+    app: os-climate-app-team3-simple
 spec:
   ports:
   - port: 3800
     name: http
   selector:
-    app: os-climate-app-team2-simple
+    app: os-climate-app-team3-simple
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: os-climate-app-team2-simple
-  name: os-climate-app-team2-simple
+    app: os-climate-app-team3-simple
+  name: os-climate-app-team3-simple
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: os-climate-app-team2-simple
+      app: os-climate-app-team3-simple
   template:
     metadata:
       labels:
-        app: os-climate-app-team2-simple
+        app: os-climate-app-team3-simple
     spec:
-      serviceAccountName: os-climate-app-team2
+      serviceAccountName: data-team2
       containers:
       - image: quay.io/myeung/simple-python:latest
         imagePullPolicy: IfNotPresent
-        name: os-climate-app-team2
+        name: os-climate-app-team3
         ports:
           - containerPort: 3800
       - image: quay.io/myeung/secretless-broker:local
@@ -44,7 +44,7 @@ spec:
         args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: host/user2/os-climate-app-team2
+            value: host/jupyterhub/notebooks-team1
 
           # values from pod metadata
           - name: MY_POD_NAME

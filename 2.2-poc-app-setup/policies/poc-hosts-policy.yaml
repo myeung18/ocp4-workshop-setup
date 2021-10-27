@@ -1,0 +1,35 @@
+- !policy
+  id: jupyterhub
+  body:
+    # Hosts are the identity for authentication
+    - &hosts
+      - !host
+        id: notebooks-team1
+        annotations:
+          authn-k8s/namespace: data-team1
+          authn-k8s/service-account: data-team1
+          authn-k8s/authentication-container-name: secretless-broker
+
+      - !host
+        id: notebooks-team2
+        annotations:
+          authn-k8s/namespace: data-team2
+          authn-k8s/service-account: data-team2
+          authn-k8s/authentication-container-name: secretless-broker
+
+      - !host
+        id: notebooks-team3
+        annotations:
+          authn-k8s/namespace: jupyterhub
+          authn-k8s/service-account: data-team3
+          authn-k8s/authentication-container-name: secretless-broker
+
+    - !group
+
+    - !grant
+      role: !group
+      members: *hosts
+
+- !grant
+  role: !group conjur/authn-k8s/os-climate-poc/consumers
+  member: !group jupyterhub

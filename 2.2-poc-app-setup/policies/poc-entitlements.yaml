@@ -1,0 +1,11 @@
+# root policy
+# Grant secrets to a layer of host
+- !grant
+  role: !group os-climate/team1/awscredentials/secrets-users
+  members: 
+    - !layer jupyterhubapps/jupyterappslayer1/
+    
+- !grant
+  role: !group os-climate/team2/awscredentials/secrets-users
+  members: 
+    - !layer jupyterhubapps/jupyterappslayer2/

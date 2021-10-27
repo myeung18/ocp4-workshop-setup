@@ -25,7 +25,6 @@ main() {
   enable_authn_on_master
   initialize_verify_k8s_api_secrets
   create_configmaps
-  init_secrets
   install_conjur_client
 }
 
@@ -192,24 +191,6 @@ create_configmaps() {
     >> dap-cm-manifest.yaml
 
   oc apply -f ./dap-cm-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
-}
-
-########################
-init_secrets() {
-  echo "Initializing secrets..."
-  cat ./templates/master-secrets-policy.template.yaml			\
-    | sed -e "s#{{ VAULT_NAME }}#$VAULT_NAME#g"		 		\
-    | sed -e "s#{{ LOB_NAME }}#$LOB_NAME#g" 				\
-    | sed -e "s#{{ SAFE_NAME }}#$SAFE_NAME#g" 			\
-    | sed -e "s#{{ ACCOUNT_NAME }}#$ACCOUNT_NAME#g" 			\
-    > master-secrets-policy.yaml
-  ../load_policy.sh root ./master-secrets-policy.yaml delete
-
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/access_key $AWS_ACCESS_KEY
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/$SAFE_NAME/$ACCOUNT_NAME/secret_key $AWS_SECRET_KEY
-
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/LabSafe2/$ACCOUNT_NAME/access_key $AWS_ACCESS_KEY_2
-  ../get_set.sh set $VAULT_NAME/$LOB_NAME/LabSafe2/$ACCOUNT_NAME/secret_key $AWS_SECRET_KEY_2
 }
 
 ############################
