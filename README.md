@@ -21,7 +21,9 @@ export AWS_SECRET_KEY=<secret_key1>
 export AWS_ACCESS_KEY_2=<acess_key2>
 export AWS_SECRET_KEY_2=<secret_key2>
 
-#Run the setup script to install the Conjur Enterprise, POC applications and their Secretless Brokers
+```
+### Run the setup script to install the Conjur Enterprise, POC applications and their Secretless Brokers
+```shell script
 $./SETUP-POC.sh
 
 #three projects are created as shown below
@@ -59,7 +61,7 @@ username: `admin`; password is the one you input while the `./SETUP-POC.sh` was 
 
 ### Policies
 
-The following policies are created in the Conjur for the Authentication and Authorization of OS-Climate applications:
+#### The following policies are created in the Conjur for the Authentication and Authorization of OS-Climate applications:
 
 [`Kubernetes Authenticator`](https://docs.conjur.org/Latest/en/Content/Integrations/kubernetes.htm?tocpath=Integrations%7COpenShift%252C%20Kubernetes%7C_____0) is used in the Conjur to authenticate with Secretless Brokers
 
@@ -214,7 +216,7 @@ The following defines the AWS credential variables where the actual secrets are 
       role: !group secrets-users
 ```
 
-The following grants a credential to its corresponding layer/host where that team's application is running:
+The following grants credentials to different teams:
 
 ```sh-session
 # root policy
@@ -230,7 +232,7 @@ The following grants a credential to its corresponding layer/host where that tea
     - !layer jupyterhubapps/jupyterappslayer2/
 ```
 
-The policies in Conjur are stored in a tree like structure:
+#### Policies in Conjur are stored in a tree like structure:
 
 The `admin` is a Conjur account.  Under it, we have defined the OS-Climate application, and it has two teams. Each team has its own credential, and the credential is granted to those hosts/layer where the application is running.
 
