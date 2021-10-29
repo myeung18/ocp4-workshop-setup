@@ -13,13 +13,13 @@ main() {
     create_dap_config_cm
     create_secretless_config_cm
     deploy_poc_app
-    create_host_permission
+    creating_policies_secrets
 }
 
 clean_poc_app() {
-  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace and user 
+  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace
   do
-    uname=$(echo user${unum})
+    uname=$(echo data-team${unum})
     oc delete -f $uname-app-poc-manifest.yaml -n $uname --ignore-not-found --force=true --grace-period=0
     rm -rf $uname-app-poc-manifest.yaml
     oc delete -f $uname-app-namespace.rbac.yaml -n $uname --ignore-not-found --force=true --grace-period=0
@@ -32,9 +32,11 @@ clean_poc_app() {
 }
 
 create_namespace_with_rbac() {
-  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace and user 
+
+  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace
   do
-    uname=$(echo user${unum})
+    uname=$(echo data-team${unum})
+    echo "Creating namespace and rbac... ${uname}"
     cat ./templates/app-namespace-rbac.template.yaml				\
     | sed -e "s#{{ APP_NAMESPACE_NAME }}#$uname#g" 				\
     | sed -e "s#{{ APP_NAMESPACE_ADMIN }}#$uname#g"				\
@@ -46,11 +48,11 @@ create_namespace_with_rbac() {
 }
 
 deploy_poc_app() {
-  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace and user 
+  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))	# apply manifest for namespace
   do
-    uname=$(echo user${unum})
-
-    oc adm policy add-scc-to-user anyuid -z $(echo os-climate-app-team${unum}) -n $uname
+    uname=$(echo data-team${unum})
+    echo "Creating poc application... ${uname}"
+    oc adm policy add-scc-to-user anyuid -z $(echo ${uname}) -n $uname
     cat ./templates/app-poc-manifest.template.yaml				\
     | sed -e "s#{{ APP_NAMESPACE_NAME }}#$uname#g" 				\
     | sed -e "s#{{ APP_NAMESPACE_ADMIN }}#$uname#g"				\
@@ -64,7 +66,7 @@ deploy_poc_app() {
 create_dap_config_cm() {
   for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))
   do
-    uname=$(echo user${unum})
+    uname=$(echo data-team${unum})
 						    	# deploy dap config map in APP_NAMESPACE
     oc get cm dap-config -n $CYBERARK_NAMESPACE_NAME -o yaml		\
     | sed "s/namespace: $CYBERARK_NAMESPACE_NAME/namespace: $uname/"	\
@@ -76,33 +78,50 @@ create_dap_config_cm() {
 create_secretless_config_cm() {
   for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))
   do
-    uname=$(echo user${unum})
+    uname=$(echo data-team${unum})
 
     echo "Create secretless config map... ${uname}"
     cat ./templates/secretless-cm.template.yaml			\
-        | sed -e "s#{{ VAULT_NAME }}#$VAULT_NAME#g"		 		\
-        | sed -e "s#{{ LOB_NAME }}#$LOB_NAME#g" 				\
-        | sed -e "s#{{ SAFE_NAME }}#$SAFE_NAME#g" 			\
         | sed -e "s#{{ APP_NUM }}#$unum#g" 			\
-        | sed -e "s#{{ ACCOUNT_NAME }}#$ACCOUNT_NAME#g" 			\
     > ./$uname-secretless.yaml
     oc create cm secretless-config --from-file=secretless.yaml=$uname-secretless.yaml -n $uname
   done
 }
 
-create_host_permission() {
+creating_policies_secrets() {
+  echo "Creating policies and secrets..."
+
   export CONJUR_AUTHN_LOGIN=admin
   export CONJUR_AUTHN_API_KEY=$DAP_ADMIN_PASSWORD
 
-  echo "Creating user permission.."
-  for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))
-  do
-    uname=$(echo user${unum})
-    cat ./templates/user-policy-permission.template.yaml  \
-        | sed -e "s#{{ APP_NUM }}#$unum#g" 			\
-    > ./$uname-policy-permission.yaml
-    conjur_append_policy root ./$uname-policy-permission.yaml
-  done
+  ../load_policy.sh root policies/poc-teams.yaml
+  ../load_policy.sh os-climate policies/poc-sub-teams.yaml
+  ../load_policy.sh os-climate/team1 policies/poc-aws-secrets.yaml
+  ../load_policy.sh os-climate/team2 policies/poc-aws-secrets.yaml
+  ../load_policy.sh root policies/poc-hosts-policy.yaml
+  ../load_policy.sh root policies/poc-hosts-layer-policy.yaml
+  ../load_policy.sh root policies/poc-entitlements.yaml
+  
+  ../get_set.sh set os-climate/team1/awscredentials/aws-accesskey $AWS_ACCESS_KEY
+  ../get_set.sh set os-climate/team1/awscredentials/aws-secretkey $AWS_SECRET_KEY
+
+  ../get_set.sh set os-climate/team2/awscredentials/aws-accesskey $AWS_ACCESS_KEY_2
+  ../get_set.sh set os-climate/team2/awscredentials/aws-secretkey $AWS_SECRET_KEY_2
 }
+
+# create_host_permission() {
+#   export CONJUR_AUTHN_LOGIN=admin
+#   export CONJUR_AUTHN_API_KEY=$DAP_ADMIN_PASSWORD
+
+#   echo "Creating user permission.."
+#   for (( unum=1; unum<=$NUM_ATTENDEES; unum++ ))
+#   do
+#     uname=$(echo user${unum})
+#     cat ./templates/user-policy-permission.template.yaml  \
+#         | sed -e "s#{{ APP_NUM }}#$unum#g" 			\
+#     > ./$uname-policy-permission.yaml
+#     conjur_append_policy root ./$uname-policy-permission.yaml
+#   done
+# }
 
 main "$@"

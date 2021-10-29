@@ -1,0 +1,19 @@
+- !policy
+  id: jupyterhubapps
+  body:
+    - !layer
+      id: jupyterappslayer1
+
+    - !grant
+      role: !layer jupyterappslayer1
+      members: #a list of hosts
+        - !host /jupyterhub/notebooks-team1
+
+    - !layer
+      id: jupyterappslayer2
+
+    - !grant
+      role: !layer jupyterappslayer2
+      members: #a list of hosts
+        - !host /jupyterhub/notebooks-team2
+        - !host /jupyterhub/notebooks-team3

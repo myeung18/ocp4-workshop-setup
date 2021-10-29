@@ -1,9 +1,8 @@
-
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: os-climate-app-team{{ APP_NUM }}
-
+  name: {{ APP_NAMESPACE_NAME }}
 ---
 apiVersion: v1
 kind: Service
@@ -45,7 +44,7 @@ spec:
       labels:
         app: os-climate-app-team{{ APP_NUM }}
     spec:
-      serviceAccountName: os-climate-app-team{{ APP_NUM }}
+      serviceAccountName: {{ APP_NAMESPACE_NAME }}
       containers:
       - image: quay.io/myeung/os-climate-poc-app:0.1
         imagePullPolicy: Always
@@ -59,7 +58,7 @@ spec:
         args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: host/{{ APP_NAMESPACE_NAME }}/os-climate-app-team{{ APP_NUM }}
+            value: host/jupyterhub/notebooks-team{{ APP_NUM }}
 
           # values from pod metadata
           - name: MY_POD_NAME
