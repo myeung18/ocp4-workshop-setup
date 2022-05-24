@@ -41,8 +41,8 @@ spec:
         name: os-climate-app-team3
         ports:
           - containerPort: 3800
-      - image: quay.io/myeung/secretless-broker:local
-        imagePullPolicy: IfNotPresent
+      - image: quay.io/myeung/secretless-broker:latest
+        imagePullPolicy: Always
         name: secretless-broker
         # args refer to values mounted from config map, populated from Conjur
         args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
