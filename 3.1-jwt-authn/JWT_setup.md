@@ -14,4 +14,14 @@ $ kubectl get --raw /.well-known/openid-configuration | jq -r '.issuer'
 https://kubernetes.default.svc
 
 
+conjur --insecure variable set -i conjur/authn-jwt/dev-cluster/public-keys -v "{\"type\":\"jwks\", \"value\":$(cat jwks.json)}"
+
+conjur --insecure variable set -i conjur/authn-jwt/dev-cluster/issuer -v https://kubernetes.default.svc
+
+conjur --insecure variable set -i conjur/authn-jwt/dev-cluster/token-app-property -v "sub"
+
+conjur --insecure variable set -i conjur/authn-jwt/dev-cluster/identity-path -v app-path
+
+conjur --insecure variable set -i conjur/authn-jwt/dev-cluster/audience -v "https://dap-service-node.cyberlab.svc.cluster.local"
+
 ```

@@ -1,5 +1,5 @@
 - !policy
-  id: conjur/authn-jwt/os-climate-poc
+  id: conjur/authn-jwt/{{ CLUSTER_AUTHN_ID }}
   body:
     - !webservice
  
