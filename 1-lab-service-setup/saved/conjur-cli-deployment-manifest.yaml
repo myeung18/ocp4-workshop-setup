@@ -1,0 +1,31 @@
+#https://github.com/cyberark/conjur-authn-k8s-client/blob/master/bin/test-workflow/openshift/conjur-cli.yml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conjur-cli
+  labels:
+    app: conjur-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: conjur-cli
+  template:
+    metadata:
+      name: conjur-cli
+      labels:
+        app: conjur-cli
+    spec:
+      serviceAccountName: dap-authn-service
+      containers:
+      - name: conjur-cli
+        image: cyberark/conjur-cli:5
+        imagePullPolicy: Always 
+        command: ["sleep"]
+        args: ["infinity"]
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://dap-service-node.cyberlab.svc.cluster.local:443
+          - name: CONJUR_ACCOUNT
+            value: lab
