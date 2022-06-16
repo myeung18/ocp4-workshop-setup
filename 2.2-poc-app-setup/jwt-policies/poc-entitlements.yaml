@@ -1,0 +1,7 @@
+# root policy
+# Grant secrets to a layer of host
+- !grant
+  role: !group os-climate/team1/awscredentials/secrets-users
+  member: 
+    - !host kms-apps/system:serviceaccount:data-team1:data-team1
+

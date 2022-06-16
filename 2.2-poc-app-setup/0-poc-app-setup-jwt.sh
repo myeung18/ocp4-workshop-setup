@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ../dap-service.config
+source ../dap-service-jwt.config
 source ../conjur_utils.sh
 
 main() {
@@ -57,8 +57,8 @@ deploy_poc_app() {
     | sed -e "s#{{ APP_NAMESPACE_NAME }}#$uname#g" 				\
     | sed -e "s#{{ APP_NAMESPACE_ADMIN }}#$uname#g"				\
     | sed -e "s#{{ APP_NUM }}#$unum#g"				\
-    | sed -e "s#{{ CONJUR_AUTHN_LOGIN }}#host/jupyterhub/notebooks-team$unum#g"				\
-    | sed -e "s#{{ CONFIG_MAP }}#dap-config#g"				\
+    | sed -e "s#{{ CONFIG_MAP }}#jwt-dap-config#g"				\
+    | sed -e "s#{{ CONJUR_AUTHN_LOGIN }}##g"				\
     > ./$uname-app-poc-manifest.yaml
     oc apply -f ./$uname-app-poc-manifest.yaml -n $uname
 
@@ -70,7 +70,7 @@ create_dap_config_cm() {
   do
     uname=$(echo data-team${unum})
 						    	# deploy dap config map in APP_NAMESPACE
-    oc get cm dap-config -n $CYBERARK_NAMESPACE_NAME -o yaml		\
+    oc get cm jwt-dap-config -n $CYBERARK_NAMESPACE_NAME -o yaml		\
     | sed "s/namespace: $CYBERARK_NAMESPACE_NAME/namespace: $uname/"	\
     | oc apply -f - -n $uname
 
@@ -93,22 +93,21 @@ create_secretless_config_cm() {
 creating_policies_secrets() {
   echo "Creating policies and secrets..."
 
+  DAP_ADMIN_PASSWORD=$(retrieve_admin_password)
+  AUTHN_PASSWORD=$DAP_ADMIN_PASSWORD
+  echo "retrieved admin password: $DAP_ADMIN_PASSWORD"
+
   export CONJUR_AUTHN_LOGIN=admin
   export CONJUR_AUTHN_API_KEY=$DAP_ADMIN_PASSWORD
 
-  ../load_policy.sh root policies/poc-teams.yaml
-  ../load_policy.sh os-climate policies/poc-sub-teams.yaml
-  ../load_policy.sh os-climate/team1 policies/poc-aws-secrets.yaml
-  ../load_policy.sh os-climate/team2 policies/poc-aws-secrets.yaml
-  ../load_policy.sh root policies/poc-hosts-policy.yaml
-  ../load_policy.sh root policies/poc-hosts-layer-policy.yaml
-  ../load_policy.sh root policies/poc-entitlements.yaml
+  ../load_policy.sh root jwt-policies/poc-teams.yaml
+  ../load_policy.sh os-climate jwt-policies/poc-sub-teams.yaml
+  ../load_policy.sh os-climate/team1 jwt-policies/poc-aws-secrets.yaml
+  ../load_policy.sh root jwt-policies/sa-app-id.yaml
+  ../load_policy.sh root jwt-policies/poc-entitlements.yaml
   
   ../get_set.sh set os-climate/team1/awscredentials/aws-accesskey $AWS_ACCESS_KEY
   ../get_set.sh set os-climate/team1/awscredentials/aws-secretkey $AWS_SECRET_KEY
-
-  ../get_set.sh set os-climate/team2/awscredentials/aws-accesskey $AWS_ACCESS_KEY_2
-  ../get_set.sh set os-climate/team2/awscredentials/aws-secretkey $AWS_SECRET_KEY_2
 }
 
 # create_host_permission() {

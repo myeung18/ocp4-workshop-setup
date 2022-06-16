@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ../dap-service.config
+source ../dap-service-jwt.config
 
 main() {
   oc login -u $CLUSTER_ADMIN

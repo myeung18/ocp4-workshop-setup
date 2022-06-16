@@ -1,0 +1,3 @@
+# the policy under the root /os-climate
+- !policy
+  id: team1

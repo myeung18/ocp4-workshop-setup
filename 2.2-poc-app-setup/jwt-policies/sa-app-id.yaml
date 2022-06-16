@@ -1,0 +1,15 @@
+- !policy
+  id: kms-apps
+  body:
+    - !host
+      id: system:serviceaccount:data-team1:data-team1
+      annotations: 
+        authn-jwt/os-climate-poc/sub: system:serviceaccount:data-team1:data-team1
+        # authn-jwt/os-climate-poc/kubernetes.io/namespace: data-team1
+        # authn-jwt/os-climate-poc/kubernetes.io/serviceaccount/name: data-team1
+
+- !grant
+  role: !group conjur/authn-jwt/os-climate-poc/consumers
+  member: !host kms-apps/system:serviceaccount:data-team1:data-team1
+
+

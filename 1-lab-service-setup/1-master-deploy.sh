@@ -25,7 +25,7 @@ main() {
   enable_authn_on_master
   initialize_verify_k8s_api_secrets
   create_configmaps
-  install_conjur_client
+  # install_conjur_client
 }
 
 ########################
@@ -81,6 +81,8 @@ install_conjur_client() {
   cat ./templates/conjur-cli.template.yaml \
   | sed -e "s#{{ CYBERARK_NAMESPACE_NAME }}#$CYBERARK_NAMESPACE_NAME#g" 	\
   | sed -e "s#{{ CONJUR_ACCOUNT }}#$CONJUR_ACCOUNT#g" 		\
+  | sed -e "s#{{ CONJUR_SERVICE_ACCOUNT }}#dap-authn-service#g" 		\
+  | sed -e "s#{{ CONJUR_SERVICE_NODE }}#dap-service-node#g" 		\
   > ./conjur-cli-deployment-manifest.yaml
   oc apply -f ./conjur-cli-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
 

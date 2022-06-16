@@ -17,7 +17,7 @@ spec:
       labels:
         app: conjur-cli
     spec:
-      serviceAccountName: dap-authn-service
+      serviceAccountName: {{ CONJUR_SERVICE_ACCOUNT }} 
       containers:
       - name: conjur-cli
         image: cyberark/conjur-cli:5
@@ -26,6 +26,6 @@ spec:
         args: ["infinity"]
         env:
           - name: CONJUR_APPLIANCE_URL
-            value: https://dap-service-node.{{ CYBERARK_NAMESPACE_NAME }}.svc.cluster.local:443
+            value: https://{{ CONJUR_SERVICE_NODE }}.{{ CYBERARK_NAMESPACE_NAME }}.svc.cluster.local:443
           - name: CONJUR_ACCOUNT
             value: {{ CONJUR_ACCOUNT }}

@@ -4,7 +4,8 @@
 # A worker node is selected to host the Primary and pinned to it using a nodeSelector.
 # This greatly simplifies lab setup by making each lab cluster self-contained.
 
-source ../dap-service.config
+source ../dap-service-jwt.config
+source ../conjur_utils.sh
 
 if [ -z "${AUTHN_USERNAME}" ]; then
   echo "You must set values for env vars AUTHN_USERNAME and AUTHN_PASSWORD."
@@ -19,10 +20,9 @@ main() {
   fi
 
   label_node
-  start_master
-  MASTER_POD_NAME=$(oc get pods -n $CYBERARK_NAMESPACE_NAME | grep dap-service-node | grep Running | awk '{print $1}')
+  start_master_route
+  MASTER_POD_NAME=$(oc get pods -n $CYBERARK_NAMESPACE_NAME | grep conjur-oss-7 | grep Running | awk '{print $1}')
   init_cluster_authn
-  enable_authn_on_master
   initialize_verify_k8s_api_secrets
   create_configmaps
   install_conjur_client
@@ -33,7 +33,7 @@ clean_master() {
   oc delete -f dap-cm-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
   oc delete -f master-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
   oc delete -f conjur-cli-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME --ignore-not-found
-  rm -f dap-cm-manifest.yaml master-deployment-manifest.yaml master-authenticator-policy.yaml master-secrets-policy.yaml conjur-cli-deployment-manifest.yaml jwt-authn-policy.yaml
+  rm -f dap-cm-manifest.yaml master-deployment-manifest.yaml master-authenticator-policy.yaml master-secrets-policy.yaml conjur-cli-deployment-manifest.yaml jwt-authn-policy.yaml jwt-dap-cm-manifest.yaml 
 }
 
 ########################
@@ -45,34 +45,9 @@ label_node() {
 }
 
 ########################
-start_master() {
-  echo "Starting and configuring primary..."
-  oc create route passthrough --service=dap-service-node --port=https -n $CYBERARK_NAMESPACE_NAME
-  conjur_follower_route=$(oc get routes | grep conjur-follower | awk '{ print $2 }')
-  FOLLOWER_ALTNAME="$FOLLOWER_ALTNAMES,$conjur_follower_route"
-
-  cat ./templates/master-deployment-manifest.template.yaml 			\
-  | sed -e "s#{{ CONJUR_APPLIANCE_IMAGE }}#$REGISTRY_APPLIANCE_IMAGE#g" 	\
-  | sed -e "s#{{ DAP_MASTER_NODE_LABEL }}#$DAP_MASTER_NODE_LABEL#g" 		\
-  > ./master-deployment-manifest.yaml
-  oc apply -f ./master-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
-
-  MASTER_POD_NAME=""				# variable used globally
-  while [[ "$MASTER_POD_NAME" == "" ]]; do	# wait till pod is running
-    echo -n "."
-    sleep 3
-    MASTER_POD_NAME=$(oc get pods -n $CYBERARK_NAMESPACE_NAME | grep dap-service-node | grep Running | awk '{print $1}')
-  done
-  echo
-
-  oc exec -it $MASTER_POD_NAME -n $CYBERARK_NAMESPACE_NAME -- \
-	evoke configure master				\
-		-h $CONJUR_FOLLOWER_SERVICE_NAME	\
-		-p $DAP_ADMIN_PASSWORD			\
-		--accept-eula				\
-		$CONJUR_ACCOUNT
-
-  wait_till_node_is_responsive
+start_master_route() {
+  echo "Crearing route for conjur oss..."
+  oc create route passthrough --service=conjur-oss --port=https -n $CYBERARK_NAMESPACE_NAME
 }
 
 ########################
@@ -81,7 +56,13 @@ install_conjur_client() {
   cat ./templates/conjur-cli.template.yaml \
   | sed -e "s#{{ CYBERARK_NAMESPACE_NAME }}#$CYBERARK_NAMESPACE_NAME#g" 	\
   | sed -e "s#{{ CONJUR_ACCOUNT }}#$CONJUR_ACCOUNT#g" 		\
+  | sed -e "s#{{ CONJUR_SERVICE_ACCOUNT }}#$CONJUR_SERVICE_ACCOUNT#g" 		\
+  | sed -e "s#{{ CONJUR_SERVICE_NODE }}#$CONJUR_SERVICE_ACCOUNT#g" 		\
   > ./conjur-cli-deployment-manifest.yaml
+
+  echo "run adm policy add-scc - $CONJUR_SERVICE_ACCOUNT"
+  oc adm policy add-scc-to-user anyuid -z conjur-oss -n $CYBERARK_NAMESPACE_NAME
+
   oc apply -f ./conjur-cli-deployment-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
 
   CLI_POD_NAME=""				
@@ -95,36 +76,29 @@ install_conjur_client() {
 
 ########################
 init_cluster_authn() {
-  echo "Initializing jwt authentication..."
+  echo "Initializing jwt authentication... $CONJUR_APPLIANCE_URL"
+  DAP_ADMIN_PASSWORD=$(retrieve_admin_password)
+  AUTHN_PASSWORD=$DAP_ADMIN_PASSWORD
+  echo "retrieved admin password: $DAP_ADMIN_PASSWORD"
+
   cat ./templates/jwt-authn-policy.template.yaml		\
     | sed -e "s#{{ CLUSTER_AUTHN_ID }}#$CLUSTER_AUTHN_ID#g" 		\
     | sed -e "s#{{ CYBERARK_NAMESPACE_NAME }}#$CYBERARK_NAMESPACE_NAME#g" \
     > jwt-authn-policy.yaml
   ../load_policy.sh root ./jwt-authn-policy.yaml
-}
 
-########################
-enable_authn_on_master() {
-  echo "Enabling(allowlist) authentication..."
-  oc exec $MASTER_POD_NAME -n $CYBERARK_NAMESPACE_NAME --		\
-	evoke variable set CONJUR_AUTHENTICATORS authn-jwt/$CLUSTER_AUTHN_ID
-
-  oc exec $MASTER_POD_NAME -n $CYBERARK_NAMESPACE_NAME --		\
-	chpst -u conjur conjur-plugin-service possum 			\
-        rake authn_k8s:ca_init["conjur/authn-jwt/$CLUSTER_AUTHN_ID"]
-
-  wait_till_node_is_responsive
 }
 
 ########################
 initialize_verify_k8s_api_secrets() {
+  echo "**********************************************"
   echo "Initializing cluster API URL & credentials..."
 
   echo "Adding JWKS json to variable public-keys ..."
   JWKS_JSON="$(oc get --raw $(kubectl get --raw /.well-known/openid-configuration | jq -r '.jwks_uri'))"
   ../get_set.sh set \
      conjur/authn-jwt/$CLUSTER_AUTHN_ID/public-keys \
-     $JWKS_JSON
+     "{\"type\":\"jwks\", \"value\":$JWKS_JSON}"
 
   echo "Adding JWT issuer json to variable issuer ..."
   ISSUER=$(kubectl get --raw /.well-known/openid-configuration | jq -r '.issuer')
@@ -138,11 +112,11 @@ initialize_verify_k8s_api_secrets() {
 
   echo "Adding variable identity-path ..."
   ../get_set.sh set \
-     conjur/authn-jwt/$CLUSTER_AUTHN_ID/identity-path "app-path"
+     conjur/authn-jwt/$CLUSTER_AUTHN_ID/identity-path "kms-apps"
   
   echo "Adding variable audience ..."
   ../get_set.sh set \
-     conjur/authn-jwt/$CLUSTER_AUTHN_ID/audience "https://dap-service-node.cyberlab.svc.cluster.local"
+     conjur/authn-jwt/$CLUSTER_AUTHN_ID/audience $ISSUER
 
   echo
   echo
@@ -152,7 +126,7 @@ initialize_verify_k8s_api_secrets() {
   ISSUER="$(../get_set.sh get conjur/authn-jwt/$CLUSTER_AUTHN_ID/issuer)"
   echo "issuer : $ISSUER"
   echo
-  echo "Get DAP service account token..."
+  echo "Get DAP service account token (public-keys)..."
   TOKEN=$(../get_set.sh get conjur/authn-jwt/$CLUSTER_AUTHN_ID/public-keys)
   echo
   echo "keys got: " $TOKEN
@@ -161,30 +135,31 @@ initialize_verify_k8s_api_secrets() {
   AUD=$(../get_set.sh get conjur/authn-jwt/$CLUSTER_AUTHN_ID/audience)
   echo
   echo "aud: $AUD"
+  echo
 }
 
 ########################
 create_configmaps() {
   echo "Creating config map..."
-  cat ./templates/dap-config-map-manifest.template.yaml 			\
+  cat ./templates/jwt-dap-config-map-manifest.template.yaml 			\
     | sed -e "s#{{ CONJUR_ACCOUNT }}#$CONJUR_ACCOUNT#g" 				\
     | sed -e "s#{{ CONJUR_MASTER_HOSTNAME }}#$CONJUR_MASTER_HOSTNAME#g" 	\
     | sed -e "s#{{ CYBERARK_NAMESPACE_NAME }}#$CYBERARK_NAMESPACE_NAME#g"	\
     | sed -e "s#{{ CLUSTER_AUTHN_ID }}#$CLUSTER_AUTHN_ID#g" 			\
-    > ./dap-cm-manifest.yaml
+    > ./jwt-dap-cm-manifest.yaml
 
   # append entries for master & follower certs
-  echo "  CONJUR_MASTER_CERTIFICATE: |" >> dap-cm-manifest.yaml
+  echo "  CONJUR_MASTER_CERTIFICATE: |" >> jwt-dap-cm-manifest.yaml
   ../get_cert_REST.sh $CONJUR_MASTER_HOSTNAME $CONJUR_MASTER_PORT	\
     | awk '{ print "    " $0 }'						\
-    >> dap-cm-manifest.yaml
+    >> jwt-dap-cm-manifest.yaml
 
-  echo "  CONJUR_FOLLOWER_CERTIFICATE: |" >> dap-cm-manifest.yaml
+  echo "  CONJUR_FOLLOWER_CERTIFICATE: |" >> jwt-dap-cm-manifest.yaml
   ../get_cert_REST.sh $CONJUR_MASTER_HOSTNAME $CONJUR_MASTER_PORT	\
     | awk '{ print "    " $0 }'						\
-    >> dap-cm-manifest.yaml
+    >> jwt-dap-cm-manifest.yaml
 
-  oc apply -f ./dap-cm-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
+  oc apply -f ./jwt-dap-cm-manifest.yaml -n $CYBERARK_NAMESPACE_NAME
 }
 
 ############################

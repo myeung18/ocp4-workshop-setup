@@ -131,3 +131,28 @@ urlify() {
         str=$(echo $str | sed 's=@=%40=g')
         echo $str
 }
+
+conjur_master_labels() {
+    echo "app=conjur-oss,release=$HELM_RELEASE"
+}
+
+conjur_postgres_labels() {
+    echo "app=conjur-oss-postgres,release=$HELM_RELEASE"
+}
+
+get_master_pod_name() {
+  pod_name=$(kubectl get pods \
+             -n "$CONJUR_NAMESPACE" \
+             -l "$(conjur_master_labels)" \
+             -o jsonpath="{.items[0].metadata.name}")
+  echo $pod_name
+}
+
+retrieve_admin_password() {
+	master_pod="$(get_master_pod_name)"
+	echo "$(kubectl exec \
+        -n "$CONJUR_NAMESPACE" \
+        "$master_pod" \
+        --container=conjur-oss \
+        -- conjurctl role retrieve-key "$CONJUR_ACCOUNT":user:admin | tail -1)"
+}

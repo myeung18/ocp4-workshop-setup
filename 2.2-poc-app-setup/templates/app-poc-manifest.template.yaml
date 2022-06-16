@@ -58,7 +58,7 @@ spec:
         args: ["-f", "/etc/secretless/secretless.yaml", "-debug"]
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: host/jupyterhub/notebooks-team{{ APP_NUM }}
+            value: {{ CONJUR_AUTHN_LOGIN }}
 
           # values from pod metadata
           - name: MY_POD_NAME
@@ -78,27 +78,27 @@ spec:
           - name: CONJUR_VERSION
             valueFrom:
               configMapKeyRef:
-                name: dap-config
+                name: {{ CONFIG_MAP }}
                 key: CONJUR_VERSION
           - name: CONJUR_ACCOUNT
             valueFrom:
               configMapKeyRef:
-                name: dap-config
+                name: {{ CONFIG_MAP }}
                 key: CONJUR_ACCOUNT
           - name: CONJUR_APPLIANCE_URL
             valueFrom:
               configMapKeyRef:
-                name: dap-config
+                name: {{ CONFIG_MAP }}
                 key: CONJUR_APPLIANCE_URL
           - name: CONJUR_SSL_CERTIFICATE
             valueFrom:
               configMapKeyRef:
-                name: dap-config
+                name: {{ CONFIG_MAP }}
                 key: CONJUR_FOLLOWER_CERTIFICATE
           - name: CONJUR_AUTHN_URL
             valueFrom:
               configMapKeyRef:
-                name: dap-config
+                name: {{ CONFIG_MAP }}
                 key: CONJUR_AUTHN_URL
 
         volumeMounts:

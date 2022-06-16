@@ -1,0 +1,5 @@
+- !delete
+  record: !policy os-climate
+
+- !delete
+  record: !policy kms-apps

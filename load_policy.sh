@@ -71,11 +71,14 @@ authn_user() {
     export AUTHN_PASSWORD=$admin_pwd
   fi
   # Login user, authenticate and get API key for session
+  
   local api_key=$(curl \
                     -sk \
                     --user $AUTHN_USERNAME:$AUTHN_PASSWORD \
                     $CONJUR_APPLIANCE_URL/authn/$CONJUR_ACCOUNT/login)
 
+  echo "called login $CONJUR_APPLIANCE_URL/authn/$CONJUR_ACCOUNT/login $AUTHN_USERNAME:$AUTHN_PASSWORD"
+  echo "api_key : $api_key"
   local response=$(curl -sk \
                      --data $api_key \
                      $CONJUR_APPLIANCE_URL/authn/$CONJUR_ACCOUNT/$AUTHN_USERNAME/authenticate)
